@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Production Sim Card Helper (SCRIPT)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="icon"
+      href="https://media.licdn.com/dms/image/D4D0BAQEB10t3xPTZWQ/company-logo_200_200/0/1683022593326/novideagr_logo?e=2147483647&v=beta&t=T7o420-HAXnKmKMLZ5w6B_o7ckSyYS56dK1vG7KygtA"
+      type="image/x-icon"
+    />
+
+    <style>
+      .switch {
+        position: relative;
+        display: inline-block;
+        width: 60px;
+        height: 34px;
+      }
+
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        -webkit-transition: 0.4s;
+        transition: 0.4s;
+      }
+
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 26px;
+        width: 26px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        -webkit-transition: 0.4s;
+        transition: 0.4s;
+      }
+
+      input:checked + .slider {
+        background-color: #2196f3;
+      }
+
+      input:focus + .slider {
+        box-shadow: 0 0 1px #2196f3;
+      }
+
+      input:checked + .slider:before {
+        -webkit-transform: translateX(26px);
+        -ms-transform: translateX(26px);
+        transform: translateX(26px);
+      }
+
+      .slider.round {
+        border-radius: 34px;
+      }
+
+      .slider.round:before {
+        border-radius: 50%;
+      }
+
+      /*  LOADING STATE  */
+
+      .overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5); /* semi-transparent black */
+        z-index: 9999; /* ensure it's on top of everything */
+        display: none;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .spinner {
+        border: 16px solid #f3f3f3; /* Light grey */
+        border-top: 16px solid #3498db; /* Blue */
+        border-radius: 50%;
+        width: 120px;
+        height: 120px;
+        animation: spin 2s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body class="flex flex-col w-full h-screen">
+    <div class="overlay" id="overlay">
+      <div class="spinner"></div>
+    </div>
+    <div
+      class="flex flex-row w-full shadow-2xl p-5 items-center justify-between"
+    >
+      <div class="items-center w-sm">
+        <img
+          src="https://novidea.gr/wp-content/uploads/2022/12/Frame-2.png"
+          width="100px"
+        />
+      </div>
+
+      <p class="text-blue-900 font-bold">Production Sim Cards</p>
+
+      <p class="text-blue-900 w-sm">Helping Script</p>
+    </div>
+
+    <div class="flex flex-row w-full h-full p-5 space-x-10">
+      <div class="flex flex-col w-1/2 h-full space-y-3">
+        <p class="text-2xl text-blue-900">Εισαγωγη του EXCEL αρχείου</p>
+        <input class="bg-gray-200 rounded-lg p-2" type="file" id="fileInput" />
+        <p class="text-2xl text-blue-900">
+          Εισαγωγη των σειραικων για αναζήτηση
+        </p>
+        <textarea
+          id="snTextarea"
+          class="h-full bg-gray-200 rounded-lg p-2 w-full"
+          placeholder="Enter S/Ns, one per line"
+        ></textarea>
+        <button class="bg-blue-700 text-white rounded-md p-2" id="searchButton">
+          Search
+        </button>
+      </div>
+
+      <div class="flex flex-col w-1/2 h-full space-y-3">
+        <p class="text-2xl text-blue-900">Αποτελέσματα αναζήτησης SIM cards</p>
+        <textarea
+          id="results"
+          class="h-full bg-gray-200 rounded-lg p-2 w-full"
+          disabled
+        ></textarea>
+      </div>
+    </div>
+  </body>
+</html>
+<script>
+  document
+    .getElementById("searchButton")
+    .addEventListener("click", async function () {
+      document.getElementById("overlay").style.display = "flex";
+      const fileInput = document.getElementById("fileInput");
+      const snTextarea = document.getElementById("snTextarea");
+      const resultsTextarea = document.getElementById("results");
+      resultsTextarea.value = "";
+
+      if (!fileInput.files.length) {
+        alert("Please select an Excel file.");
+        document.getElementById("overlay").style.display = "none";
+        return;
+      }
+
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+
+      reader.onload = async function (event) {
+        const data = new Uint8Array(event.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        let count = 0;
+
+        let snList = snTextarea.value
+          .split("\n")
+          .map((sn) => sn.trim())
+          .filter((sn) => sn);
+        let results = [];
+
+        rows.forEach((row) => {
+          const sn = (row[0] || "").toString().trim();
+          const simCard = (row[1] || "").toString().trim();
+
+          if (snList.includes(sn)) {
+            count = count + 1;
+            results.push(`${sn}\t${simCard}`);
+          }
+        });
+
+        const header = `Αριθμός σειριακών στην λίστα: ${count}\n\n`;
+        resultsTextarea.value = results.length
+          ? header + results.join("\n")
+          : "No matching S/Ns found.";
+        document.getElementById("overlay").style.display = "none";
+      };
+
+      reader.readAsArrayBuffer(file);
+    });
+</script>
+

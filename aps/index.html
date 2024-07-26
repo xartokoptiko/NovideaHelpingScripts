@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>APS Delivery Notes (SCRIPT)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="icon"
+      href="https://media.licdn.com/dms/image/D4D0BAQEB10t3xPTZWQ/company-logo_200_200/0/1683022593326/novideagr_logo?e=2147483647&v=beta&t=T7o420-HAXnKmKMLZ5w6B_o7ckSyYS56dK1vG7KygtA"
+      type="image/x-icon"
+    />
+  </head>
+  <body class="flex flex-col h-screen">
+    <div
+      class="flex flex-row w-full shadow-2xl p-5 items-center justify-between"
+    >
+      <div class="items-center w-sm">
+        <img
+          src="https://novidea.gr/wp-content/uploads/2022/12/Frame-2.png"
+          width="100px"
+        />
+      </div>
+
+      <p class="text-blue-900 font-bold">APS Delivery Notes</p>
+
+      <p class="text-blue-900 w-sm">Helping Script</p>
+    </div>
+
+    <div class="flex flex-row w-full p-5 h-full">
+      <div class="flex flex-col w-1/2 space-y-7">
+        <p class="text-2xl text-blue-900">Εισαγωγή των EXCEL Αρχείων</p>
+        <div class="flex flex-col space-y-3">
+          <p>Branch file</p>
+          <input type="file" id="branch" />
+        </div>
+
+        <div class="flex flex-col space-y-3">
+          <p>Tech codes file</p>
+          <input type="file" id="techcode" />
+        </div>
+
+        <div
+          class="flex flex-col bg-gray-200 rounded-lg p-5 max-w-lg space-y-3"
+        >
+          <input
+            class="bg-white rounded-lg p-2"
+            type="text"
+            placeholder="Αριθμος Branch"
+            id="branchnumber"
+          />
+
+          <input
+            class="bg-white rounded-lg p-2"
+            type="text"
+            placeholder="Πελάτης"
+            id="client"
+          />
+
+          <!-- New select dropdown for branch names -->
+          <select class="bg-white rounded-lg p-2" id="branchnames">
+            <option value="NOT" selected>Επιλογη APS</option>
+          </select>
+
+          <select class="bg-white rounded-lg p-2" id="names">
+            <option value="NOT" selected>Επιλογη ονοματος τεχνικου</option>
+          </select>
+
+          <div class="flex flex-row items-center space-x-3">
+            <input
+              class="bg-white rounded-lg p-2 w-sm"
+              type="text"
+              placeholder="Πoσοτητα Ανταλλακτικου"
+              id="sparecount"
+            />
+
+            <input
+              class="bg-white rounded-lg p-2"
+              type="text"
+              placeholder="Κωδικος Ανταλλακτικου"
+              id="spareid"
+            />
+          </div>
+
+          <button
+            id="generateText"
+            class="bg-blue-900 text-white rounded-lg p-2"
+          >
+            Εισαγωγη στην περιοxη κειμενου
+          </button>
+        </div>
+      </div>
+      <div class="flex flex-col w-1/2 space-y-7">
+        <textarea
+          id="output"
+          class="bg-gray-200 rounded-lg h-full mt-10 p-5"
+        ></textarea>
+      </div>
+    </div>
+  </body>
+</html>
+<script>
+  // GLOBAL VARIABLES
+  let techCodes = [];
+  let branches = [];
+  let finalbranch = null;
+  let selectedTech = null;
+  let selectedBranchName = null;
+
+  // ASSIGNING FUNCTIONS TO HTML ELEMENTS
+  document
+    .getElementById("branch")
+    .addEventListener("change", handleBranchFile, false);
+
+  document
+    .getElementById("techcode")
+    .addEventListener("change", handleTechCodesFile, false);
+
+  document
+    .getElementById("branchnumber")
+    .addEventListener("input", handleBranchNumberInput);
+
+  document
+    .getElementById("names")
+    .addEventListener("change", handleTechSelection);
+
+  document
+    .getElementById("branchnames")
+    .addEventListener("change", handleBranchNameSelection);
+
+  document
+    .getElementById("generateText")
+    .addEventListener("click", generateText);
+
+  // FUNCTIONS
+
+  function handleBranchFile(event) {
+    const file = event.target.files[0];
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+      const headers = jsonData[0];
+
+      for (let i = 1; i < jsonData.length; i++) {
+        const row = jsonData[i];
+        if (row.length === headers.length) {
+          const branch = {
+            code: String(row[0]), // Code
+            branchName: String(row[1]), // Branch Name
+            address: String(row[2]), // Address
+            postalCode: String(row[3]), // Postal Code
+            area: String(row[4]), // Area
+            municipality: String(row[5]), // Municipality
+            region: String(row[6]), // Region
+            name1: String(row[7]), // #1 Name
+            name2: String(row[8]), // #2 Name
+            name3: String(row[9]), // #3 Name
+          };
+          branches.push(branch);
+        }
+      }
+
+      console.log("Branches:", branches);
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function handleTechCodesFile(event) {
+    const file = event.target.files[0];
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+      for (let i = 1; i < jsonData.length; i++) {
+        const row = jsonData[i];
+
+        const tech = {
+          customerCode: row[0], // Κωδικός Πελάτη
+          hub: row[1], // HUB
+          region: row[2], // ΝΟΜΟΣ/ΝΗΣΟΣ
+          lastName: row[3], // ΕΠΩΝΥΜΟ
+          firstName: row[4], // ΟΝΟΜΑ
+          mobile: row[5], // ΚΙΝΗΤΟ
+          landline: row[6], // ΣΤΑΘΕΡΟ
+          email1: row[7], // E-MAIL
+          email2: row[8], // E-MAIL 2
+          companyName: row[9], // ΕΠΩΝΥΜΙΑ
+          activity: row[10], // ΔΡΑΣΤΗΡΙΟΤΗΤΑ
+          title: row[11], // ΔΙΑΚΡΙΤΙΚΟΣ ΤΙΤΛΟΣ
+          address: row[12], // ΔΙΕΥΘΥΝΣΗ
+          area: row[13], // ΠΕΡΙΟΧΗ
+          postalCode: row[14], // Τ.Κ.
+          vatNumber: row[15], // Α.Φ.Μ.
+        };
+
+        techCodes.push(tech);
+      }
+
+      console.log("Tech Codes:", techCodes);
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function handleBranchNumberInput() {
+    const branchNumber = document.getElementById("branchnumber").value;
+    const branch = branches.find((b) => b.code === branchNumber);
+    finalbranch = branch;
+    const namesDropdown = document.getElementById("names");
+    const branchNamesDropdown = document.getElementById("branchnames");
+
+    // Clear previous options
+
+    if (branch) {
+      alert("Branch found!");
+
+      const matchingTechs = techCodes.filter((t) => t.region === branch.area);
+
+      matchingTechs.forEach((tech) => {
+        const option = document.createElement("option");
+        option.value = tech.customerCode;
+        option.textContent = `${tech.firstName} ${tech.lastName}`;
+        namesDropdown.appendChild(option);
+      });
+
+      // Populate branch names dropdown
+      const branchNames = [branch.name1, branch.name2, branch.name3];
+      branchNames.forEach((name) => {
+        if (name) {
+          const option = document.createElement("option");
+          option.value = name;
+          option.textContent = name;
+          branchNamesDropdown.appendChild(option);
+        }
+      });
+    }
+  }
+
+  function handleTechSelection(event) {
+    const selectedCode = event.target.value;
+    selectedTech = techCodes.find((tech) => tech.customerCode === selectedCode);
+    console.log("Selected Tech:", selectedTech);
+  }
+
+  function handleBranchNameSelection(event) {
+    selectedBranchName = event.target.value;
+    console.log("Selected Branch Name:", selectedBranchName);
+  }
+
+  function generateText() {
+    const client = document.getElementById("client").value || "";
+    const sparecount = document.getElementById("sparecount").value || "";
+    const spareid = document.getElementById("spareid").value || "";
+
+    const textarea = document.getElementById("output");
+
+    console.log("Selected Tech:", selectedTech);
+    console.log("Selected Branch Name:", selectedBranchName);
+    console.log("Final Branch:", finalbranch);
+    console.log("Client:", client);
+    console.log("Spare Count:", sparecount);
+    console.log("Spare ID:", spareid);
+
+    // Construct the text
+    const text = `${selectedTech ? selectedTech.customerCode : "N/A"} \n${
+      selectedBranchName ? selectedBranchName : "N/A"
+    } ${client} ${finalbranch ? finalbranch.code : "N/A"} ${
+      finalbranch ? finalbranch.address : "N/A"
+    } ${finalbranch ? finalbranch.area : "N/A"} \n${sparecount} ${spareid}`;
+
+    // Set the text to the textarea
+    textarea.value = textarea.value + text + "\n\n";
+  }
+
+  //BROWSER FUNCTIONS
+  // Prevent page reload warning
+  window.addEventListener("beforeunload", function (e) {
+    var confirmationMessage = "Are you sure you want to leave?";
+    e.returnValue = confirmationMessage; // Gecko, Trident, Chrome 34+
+    return confirmationMessage; // Gecko, WebKit, Chrome <34
+  });
+
+  // Clear file inputs on page load
+  window.addEventListener("load", function () {
+    document.getElementById("branch").value = "";
+    document.getElementById("techcode").value = "";
+  });
+</script>
