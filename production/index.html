@@ -260,7 +260,7 @@
 
           // Remove any S/Ns found in both from the results array
           results = results.filter((result) => {
-            const sn = result.split("\t")[0];
+            const sn = result.split("\t")[1]; // Corrected index to extract S/N
             return !foundInBoth.has(sn);
           });
 
