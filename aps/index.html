@@ -220,6 +220,15 @@
     const branchNamesDropdown = document.getElementById("branchnames");
 
     // Clear previous options
+    namesDropdown.innerHTML = "";
+    const branchOption = document.createElement("option");
+    branchOption.value = "NO";
+    branchOption.textContent = "Επιλογη APS";
+
+    branchNamesDropdown.innerHTML = "";
+    const nameOption = document.createElement("option");
+    nameOption.value = "NO";
+    nameOption.textContent = "Επιλογη ονοματος τεχνικου";
 
     if (branch) {
       alert("Branch found!");
