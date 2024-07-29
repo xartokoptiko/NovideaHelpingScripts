@@ -236,7 +236,7 @@
     if (branch) {
       alert("Branch found!");
 
-      const matchingTechs = techCodes.filter((t) => t.region === branch.municipality);
+      const matchingTechs = techCodes.filter((t) => t.region === branch.area);
 
       matchingTechs.forEach((tech) => {
         const option = document.createElement("option");
