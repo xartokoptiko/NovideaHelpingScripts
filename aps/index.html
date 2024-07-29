@@ -224,11 +224,14 @@
     const branchOption = document.createElement("option");
     branchOption.value = "NO";
     branchOption.textContent = "Επιλογη APS";
+    branchNamesDropdown.appendChild(branchOption);
 
     branchNamesDropdown.innerHTML = "";
     const nameOption = document.createElement("option");
     nameOption.value = "NO";
     nameOption.textContent = "Επιλογη ονοματος τεχνικου";
+    namesDropdown.appendChild(nameOption);
+
 
     if (branch) {
       alert("Branch found!");
